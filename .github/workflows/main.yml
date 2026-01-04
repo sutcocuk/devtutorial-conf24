@@ -13,19 +13,21 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1️⃣ Checkout repository using GH_PAT secret for push access
+      # 1️⃣ Checkout repository securely using GH_PAT
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           token: ${{ secrets.GH_PAT }}
+          fetch-depth: 0          # full history needed for push
           persist-credentials: true
 
-      # 2️⃣ Install UCC framework, packaging toolkit, and jq
+      # 2️⃣ Install UCC framework, packaging toolkit, and jq/git
       - name: Install UCC and tools
         run: |
-          pip install splunk-add-on-ucc-framework
-          pip install splunk-packaging-toolkit
-          sudo apt-get update && sudo apt-get install -y jq git
+          sudo apt-get update
+          sudo apt-get install -y jq git
+          pip install --upgrade pip
+          pip install splunk-add-on-ucc-framework splunk-packaging-toolkit
 
       # 3️⃣ Increment version in app.manifest (minor version bump)
       - name: Increment version
@@ -37,7 +39,7 @@ jobs:
           # Split version into major.minor.patch
           IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
 
-          # Increment minor version (change to PATCH=$((PATCH+1)) if you prefer patch bump)
+          # Increment minor version (change to PATCH=$((PATCH+1)) for patch bumps)
           MINOR=$((MINOR + 1))
           NEW_VERSION="$MAJOR.$MINOR.0"
           echo "New version: $NEW_VERSION"
@@ -57,27 +59,21 @@ jobs:
       # 6️⃣ Package the app
       - name: Package the app
         run: |
-          APP_DIR=$(ls -d output/* | head -n 1)
-          echo "Packaging app from $APP_DIR"
+          APP_OUTPUT=$(ls -d output/* | head -n 1)
+          echo "Packaging app from $APP_OUTPUT"
 
-          # Get app name and updated version
-          APP_NAME=$(jq -r '.info.id.name' "$APP_DIR/app.manifest")
-          APP_VERSION=$(jq -r '.info.id.version' "$APP_DIR/app.manifest")
+          APP_NAME=$(jq -r '.info.id.name' "$APP_OUTPUT/app.manifest")
+          APP_VERSION=$(jq -r '.info.id.version' "$APP_OUTPUT/app.manifest")
           PACKAGE_FILE="${APP_NAME}-${APP_VERSION}.tar.gz"
 
-          # Package the app
-          ucc-gen package --path "$APP_DIR" -o app-dir/
+          ucc-gen package --path "$APP_OUTPUT" -o app-dir/
 
-          # Detect generated file
           GENERATED_FILE=$(ls app-dir/*.tar.gz | head -n 1)
           echo "Generated package: $GENERATED_FILE"
 
-          # Rename if necessary
+          # Rename package if necessary
           if [ "$GENERATED_FILE" != "app-dir/$PACKAGE_FILE" ]; then
             mv "$GENERATED_FILE" "app-dir/$PACKAGE_FILE"
-            echo "Package renamed to: $PACKAGE_FILE"
-          else
-            echo "Package already has correct name: $PACKAGE_FILE"
           fi
 
           # Move package to repo folder
