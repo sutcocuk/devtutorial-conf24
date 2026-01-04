@@ -17,33 +17,46 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
 
-      # 2️⃣ Install UCC framework and packaging toolkit
-      - name: Install UCC
+      # 2️⃣ Install dependencies
+      - name: Install UCC and tools
         run: |
           pip install splunk-add-on-ucc-framework
           pip install splunk-packaging-toolkit
-          sudo apt-get update && sudo apt-get install -y jq
+          sudo apt-get update && sudo apt-get install -y jq git
 
-      # 3️⃣ Build the app
+      # 3️⃣ Increment version in app.manifest (minor version)
+      - name: Increment version
+        run: |
+          APP_DIR=.
+          CURRENT_VERSION=$(jq -r '.info.id.version' "$APP_DIR/app.manifest")
+          echo "Current version: $CURRENT_VERSION"
+
+          # Split version into major.minor.patch
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
+          # Increment minor version
+          MINOR=$((MINOR + 1))
+          NEW_VERSION="$MAJOR.$MINOR.0"
+          echo "New version: $NEW_VERSION"
+
+          # Update app.manifest
+          jq ".info.id.version=\"$NEW_VERSION\"" "$APP_DIR/app.manifest" > "$APP_DIR/app.manifest.tmp" && mv "$APP_DIR/app.manifest.tmp" "$APP_DIR/app.manifest"
+          echo "app.manifest updated to version $NEW_VERSION"
+
+      # 4️⃣ Build the app
       - name: Build the app
         run: ucc-gen build
 
-      # 4️⃣ Optional: verify build output
-      - name: Verify build output
-        run: ls -lR output/
+      # 5️⃣ Create package folder
+      - name: Create package folder
+        run: mkdir -p app-dir package
 
-      # 5️⃣ Create folder for package output
-      - name: Create package output folder
-        run: mkdir -p app-dir
-
-      # 6️⃣ Package the app and handle file renaming safely
+      # 6️⃣ Package the app
       - name: Package the app
         run: |
-          # Detect the folder created by ucc-gen build
           APP_DIR=$(ls -d output/* | head -n 1)
           echo "Packaging app from $APP_DIR"
 
-          # Extract app name and version from app.manifest
+          # Get updated app name and version
           APP_NAME=$(jq -r '.info.id.name' "$APP_DIR/app.manifest")
           APP_VERSION=$(jq -r '.info.id.version' "$APP_DIR/app.manifest")
           PACKAGE_FILE="${APP_NAME}-${APP_VERSION}.tar.gz"
@@ -51,21 +64,21 @@ jobs:
           # Package the app
           ucc-gen package --path "$APP_DIR" -o app-dir/
 
-          # Detect the actual generated file
+          # Rename package if necessary
           GENERATED_FILE=$(ls app-dir/*.tar.gz | head -n 1)
-          echo "Generated package: $GENERATED_FILE"
-
-          # Rename only if necessary
           if [ "$GENERATED_FILE" != "app-dir/$PACKAGE_FILE" ]; then
             mv "$GENERATED_FILE" "app-dir/$PACKAGE_FILE"
-            echo "Package renamed to: $PACKAGE_FILE"
-          else
-            echo "Package already has the correct name: $PACKAGE_FILE"
           fi
 
-      # 7️⃣ Upload the package as an artifact
-      - name: Upload package
-        uses: actions/upload-artifact@v4
-        with:
-          name: my-package
-          path: app-dir/
+          # Move to repo package folder
+          mv "app-dir/$PACKAGE_FILE" package/
+          echo "Package moved to package/$PACKAGE_FILE"
+
+      # 7️⃣ Commit updated manifest and package back to repo
+      - name: Commit changes
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add app.manifest package/
+          git commit -m "Build version ${APP_VERSION} [skip ci]" || echo "No changes to commit"
+          git push
