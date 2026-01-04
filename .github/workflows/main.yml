@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1️⃣ Checkout the repo
+      # 1️⃣ Checkout the repository
       - name: Checkout repository
         uses: actions/checkout@v2
 
@@ -22,39 +22,41 @@ jobs:
         run: |
           pip install splunk-add-on-ucc-framework
           pip install splunk-packaging-toolkit
+          pip install jq  # ensure jq is available
 
-      # 3️⃣ Build the app using UCC
+      # 3️⃣ Build the app
       - name: Build the app
         run: ucc-gen build
 
-      # 4️⃣ List build output (optional, for debugging)
+      # 4️⃣ Optional: verify build output
       - name: Verify build output
         run: ls -lR output/
 
-      # 5️⃣ Create package output folder
+      # 5️⃣ Create folder for package output
       - name: Create package output folder
         run: mkdir -p app-dir
 
-      # 6️⃣ Package the app dynamically
+      # 6️⃣ Package the app and rename dynamically
       - name: Package the app
         run: |
           # Detect the folder created by ucc-gen build
           APP_DIR=$(ls -d output/* | head -n 1)
           echo "Packaging app from $APP_DIR"
 
-          # Read app name and version from app.manifest
+          # Extract app name and version from app.manifest
           APP_NAME=$(jq -r '.info.id.name' "$APP_DIR/app.manifest")
           APP_VERSION=$(jq -r '.info.id.version' "$APP_DIR/app.manifest")
-          PACKAGE_FILE="${APP_NAME}-${APP_VERSION}.spl"
+          PACKAGE_FILE="${APP_NAME}-${APP_VERSION}.tar.gz"
 
           # Package the app
           ucc-gen package --path "$APP_DIR" -o app-dir/
 
-          # Rename the generated package to include version
-          mv app-dir/*.spl "app-dir/$PACKAGE_FILE"
+          # Rename the generated .tar.gz package to include version
+          GENERATED_FILE=$(ls app-dir/*.tar.gz | head -n 1)
+          mv "$GENERATED_FILE" "app-dir/$PACKAGE_FILE"
           echo "Package created: app-dir/$PACKAGE_FILE"
 
-      # 7️⃣ Upload packaged app as artifact
+      # 7️⃣ Upload the package as an artifact
       - name: Upload package
         uses: actions/upload-artifact@v4
         with:
