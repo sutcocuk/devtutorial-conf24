@@ -1,0 +1,21 @@
+{
+  "name": "my_onprem_app",
+  "id": "com.example.my_onprem_app",
+  "version": "1.0.0",
+  "author": "Your Name",
+  "description": "Admin-only app, visible in Splunk Web.",
+  "releaseNotes": "Initial on-prem release.",
+  "icon": "app_icon.png",
+  "visibility": "private",
+  "minimumSplunkVersion": "9.0.0",
+  "dependencies": [],
+  "tags": [
+    "monitoring",
+    "alerts",
+    "dashboards"
+  ],
+  "permissions": {
+    "read": ["admin"],
+    "write": ["admin"]
+  }
+}
