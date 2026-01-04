@@ -38,9 +38,21 @@ jobs:
       # 6️⃣ Package the app dynamically
       - name: Package the app
         run: |
+          # Detect the folder created by ucc-gen build
           APP_DIR=$(ls -d output/* | head -n 1)
           echo "Packaging app from $APP_DIR"
+
+          # Read app name and version from app.manifest
+          APP_NAME=$(jq -r '.info.id.name' "$APP_DIR/app.manifest")
+          APP_VERSION=$(jq -r '.info.id.version' "$APP_DIR/app.manifest")
+          PACKAGE_FILE="${APP_NAME}-${APP_VERSION}.spl"
+
+          # Package the app
           ucc-gen package --path "$APP_DIR" -o app-dir/
+
+          # Rename the generated package to include version
+          mv app-dir/*.spl "app-dir/$PACKAGE_FILE"
+          echo "Package created: app-dir/$PACKAGE_FILE"
 
       # 7️⃣ Upload packaged app as artifact
       - name: Upload package
