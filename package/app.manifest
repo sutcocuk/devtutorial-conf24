@@ -1,21 +1,40 @@
 {
-  "name": "my_onprem_app",
-  "id": "com.example.my_onprem_app",
-  "version": "1.0.0",
-  "author": "Your Name",
-  "description": "Admin-only app, visible in Splunk Web.",
-  "releaseNotes": "Initial on-prem release.",
-  "icon": "app_icon.png",
-  "visibility": "private",
-  "minimumSplunkVersion": "9.0.0",
-  "dependencies": [],
-  "tags": [
-    "monitoring",
-    "alerts",
-    "dashboards"
-  ],
-  "permissions": {
-    "read": ["admin"],
-    "write": ["admin"]
-  }
+  "schemaVersion": "2.0.0",
+  "info": {
+    "title": "My On-Prem Admin App",
+    "id": {
+      "group": null,
+      "name": "my_onprem_admin_app",
+      "version": "1.0.0"
+    },
+    "author": [
+      {
+        "name": "Your Name or Company",
+        "email": "support@example.com",
+        "company": null
+      }
+    ],
+    "releaseDate": null,
+    "description": "Admin-only Splunk app with dashboards and alerts for on-prem deployments.",
+    "classification": {
+      "intendedAudience": "IT/Admin",
+      "categories": ["Monitoring", "Dashboards"],
+      "developmentStatus": "Production/Stable"
+    },
+    "commonInformationModels": null,
+    "license": {
+      "name": "Apache-2.0",
+      "text": "LICENSE.txt",
+      "uri": "https://www.apache.org/licenses/LICENSE-2.0.html"
+    },
+    "releaseNotes": {
+      "name": "Release Notes",
+      "text": "README.txt",
+      "uri": "https://example.com/release-notes"
+    }
+  },
+  "dependencies": {},
+  "tasks": [],
+  "supportedDeployments": ["_standalone", "_distributed", "_search_head_clustering"],
+  "targetWorkloads": ["_search_heads"]
 }
