@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1️⃣ Checkout repository securely using GH_PAT
+      # 1️⃣ Checkout repository using GH_PAT secret
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
@@ -29,22 +29,18 @@ jobs:
           pip install --upgrade pip
           pip install splunk-add-on-ucc-framework splunk-packaging-toolkit
 
-      # 3️⃣ Increment version in app.manifest (minor version bump)
+      # 3️⃣ Increment version in app.manifest (minor bump)
       - name: Increment version
         run: |
           APP_DIR=.
           CURRENT_VERSION=$(jq -r '.info.id.version' "$APP_DIR/app.manifest")
           echo "Current version: $CURRENT_VERSION"
 
-          # Split version into major.minor.patch
           IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
-
-          # Increment minor version (change to PATCH=$((PATCH+1)) for patch bumps)
           MINOR=$((MINOR + 1))
           NEW_VERSION="$MAJOR.$MINOR.0"
           echo "New version: $NEW_VERSION"
 
-          # Update app.manifest
           jq ".info.id.version=\"$NEW_VERSION\"" "$APP_DIR/app.manifest" > "$APP_DIR/app.manifest.tmp" && mv "$APP_DIR/app.manifest.tmp" "$APP_DIR/app.manifest"
           echo "app.manifest updated to version $NEW_VERSION"
 
@@ -71,12 +67,10 @@ jobs:
           GENERATED_FILE=$(ls app-dir/*.tar.gz | head -n 1)
           echo "Generated package: $GENERATED_FILE"
 
-          # Rename package if necessary
           if [ "$GENERATED_FILE" != "app-dir/$PACKAGE_FILE" ]; then
             mv "$GENERATED_FILE" "app-dir/$PACKAGE_FILE"
           fi
 
-          # Move package to repo folder
           mv "app-dir/$PACKAGE_FILE" package/
           echo "Package moved to package/$PACKAGE_FILE"
 
