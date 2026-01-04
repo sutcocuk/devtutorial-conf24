@@ -13,23 +13,36 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # 1️⃣ Checkout the repo
       - name: Checkout repository
         uses: actions/checkout@v2
 
+      # 2️⃣ Install UCC framework and packaging toolkit
       - name: Install UCC
         run: |
           pip install splunk-add-on-ucc-framework
           pip install splunk-packaging-toolkit
 
-      - name: Build the app using UCC
+      # 3️⃣ Build the app using UCC
+      - name: Build the app
         run: ucc-gen build
 
+      # 4️⃣ List build output (optional, for debugging)
+      - name: Verify build output
+        run: ls -lR output/
+
+      # 5️⃣ Create package output folder
       - name: Create package output folder
         run: mkdir -p app-dir
 
+      # 6️⃣ Package the app dynamically
       - name: Package the app
-        run: ucc-gen package --path output/devtutorial-conf24 -o app-dir/
+        run: |
+          APP_DIR=$(ls -d output/* | head -n 1)
+          echo "Packaging app from $APP_DIR"
+          ucc-gen package --path "$APP_DIR" -o app-dir/
 
+      # 7️⃣ Upload packaged app as artifact
       - name: Upload package
         uses: actions/upload-artifact@v4
         with:
